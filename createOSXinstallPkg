@@ -967,8 +967,11 @@ def main():
     # get info from BaseSystem.dmg
     basesystem_dmg = os.path.join(mountpoint, 'BaseSystem.dmg')
     if not os.path.isfile(basesystem_dmg):
-        unmountdmg(mountpoint)
-        fail('Missing BaseSystem.dmg in %s'% source)
+        basesystem_dmg = os.path.join(source,
+            'Contents/SharedSupport/BaseSystem.dmg')
+        if not os.path.isfile(basesystem_dmg):
+            unmountdmg(mountpoint)
+            fail('Missing BaseSystem.dmg in %s'% source)
 
     basesystemmountpoints, dummy_shadowpath = mountdmg(basesystem_dmg)
     basesystemmountpoint = basesystemmountpoints[0]
@@ -1103,14 +1106,20 @@ def main():
         # if we have any failures after this point, we should be sure to
         # clean up the broken package as well as our TMPDIR
 
-        if version.LooseVersion(os_version) > version.LooseVersion('10.12.3'):
-            need_to_print_brtool_warning = True
-        else:
-            brtool_path = os.path.join(source, 'Contents/Resources/brtool')
+        #if version.LooseVersion(os_version) > version.LooseVersion('10.12.3'):
+        #    need_to_print_brtool_warning = True
+        #else:
+        brtool_path = os.path.join(source, 'Contents/Resources/brtool')
+        if not os.path.exists(brtool_path):
+            basesystemmountpoints, dummy_shadowpath = mountdmg(basesystem_dmg)
+            basesystemmountpoint = basesystemmountpoints[0]
+            brtool_path = os.path.join(basesystemmountpoint,
+                                        'usr/libexec/brtool')
             if not os.path.exists(brtool_path):
                 fail('Can\'t find brtool at %s' % brtool_path)
-            print 'Copying brtool into package resources...'
-            copy_brtool(brtool_path, output_pkg_path)
+        print 'Copying brtool into package resources...'
+        copy_brtool(brtool_path, output_pkg_path)
+        unmountdmg(basesystemmountpoint)
 
         print 'Creating MacOSXInstaller.choiceChanges...'
         makeEmptyInstallerChoiceChanges(output_pkg_path)
@@ -1124,7 +1133,7 @@ def main():
         print '----------------------------------------------------------------'
         print 'Copying InstallESD into package...'
         output_dmg_path = os.path.join(
-            output_path, 'Contents/Resources/InstallESD.dmg')
+            output_path, 'Contents/Resources/OS X Install Data/InstallESD.dmg')
     else:
         print '----------------------------------------------------------------'
         print 'Creating custom fake Install.app...'
@@ -1146,6 +1155,48 @@ def main():
     else:
         try:
             shutil.copy(installesd_dmg, output_dmg_path)
+        except OSError, err:
+            cleanupOutput(output_pkg_path)
+            fail('Copy error: %e' % err)
+
+    if os_version > '10.12':
+        try:
+            print 'Copying AppleDiagnostics.chunklist into package...'
+            shutil.copy(os.path.join(source,
+                'Contents/SharedSupport/AppleDiagnostics.chunklist'),
+                os.path.join(destpath, 'AppleDiagnostics.chunklist'))
+        except OSError, err:
+            cleanupOutput(output_pkg_path)
+            fail('Copy error: %e' % err)
+        try:
+            print 'Copying AppleDiagnostics.dmg into package...'
+            shutil.copy(os.path.join(source,
+                'Contents/SharedSupport/AppleDiagnostics.dmg'),
+                os.path.join(destpath, 'AppleDiagnostics.dmg'))
+        except OSError, err:
+            cleanupOutput(output_pkg_path)
+            fail('Copy error: %e' % err)
+        try:
+            print 'Copying BaseSystem.chunklist into package...'
+            shutil.copy(os.path.join(source,
+                'Contents/SharedSupport/BaseSystem.chunklist'),
+                os.path.join(destpath, 'BaseSystem.chunklist'))
+        except OSError, err:
+            cleanupOutput(output_pkg_path)
+            fail('Copy error: %e' % err)
+        try:
+            print 'Copying BaseSystem.dmg into package...'
+            shutil.copy(os.path.join(source,
+                'Contents/SharedSupport/BaseSystem.dmg'),
+                os.path.join(destpath, 'BaseSystem.dmg'))
+        except OSError, err:
+            cleanupOutput(output_pkg_path)
+            fail('Copy error: %e' % err)
+        try:
+            print 'Copying InstallInfo.plist into package...'
+            shutil.copy(os.path.join(source,
+                'Contents/SharedSupport/InstallInfo.plist'),
+                os.path.join(destpath, 'InstallInfo.plist'))
         except OSError, err:
             cleanupOutput(output_pkg_path)
             fail('Copy error: %e' % err)
