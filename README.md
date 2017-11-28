@@ -1,4 +1,8 @@
-## Important note
+## Important note (2017/11/28)
+
+The note below is from the origional developer Greg Neagle. I have added updates to this to include support for macOS High Sierra. I have tested the changes with DeployStudio installing macOS High Sierra 10.13 and 10.13.1. Though the origional project is archived, I am hoping that it will be reinstalled to allow people an easy way to find these scripts once again usefull.
+
+## Important note (2017/10/03)
 
 **This project is no longer under development.**
 
