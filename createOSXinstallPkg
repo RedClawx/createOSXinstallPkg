@@ -741,7 +741,9 @@ def makeEmptyInstallerChoiceChanges(output_pkg_path):
     destpath = os.path.join(output_pkg_path,
                             'Contents/Resources/OS X Install Data',
                             'MacOSXInstaller.choiceChanges')
-    changes = []
+    changes = [dict(attributeSetting = 1,
+        choiceAttribute="selected",
+        choiceIdentifier="OSInstall")]
     try:
         plistlib.writePlist(changes, destpath)
     except OSError, err:
