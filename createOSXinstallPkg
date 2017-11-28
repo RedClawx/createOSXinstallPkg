@@ -2,6 +2,7 @@
 # encoding: utf-8
 #
 # Copyright 2012-2017 Greg Neagle.
+# Copyright 2017 Brett DeCarion.
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -25,6 +26,7 @@ Modified June 2015 for WWDC 2015
 Modified June 2016 for WWDC 2016
 Modified Aug 2016 for installs under SIP
 Modified Apr 2017 to deal with fallout from 10.12.4
+Modified by Brett DeCarion on November 2017 for compatibility with macOS High Sierra 10.13
 """
 
 import sys
