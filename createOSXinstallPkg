@@ -566,7 +566,7 @@ def findIncompatibleAppListPkgURL(catalog_url, package_name):
     return None
 
 
-def getPkgAndMakeIndexSproduct(destpath, os_vers='10.7'):
+def getPkgAndMakeIndexSproduct(source, destpath, os_vers='10.7'):
     '''Gets IncompatibleAppList package and creates index.sproduct'''
 
     LION_PKGNAME = 'MacOS_10_7_IncompatibleAppList.pkg'
@@ -601,6 +601,12 @@ def getPkgAndMakeIndexSproduct(destpath, os_vers='10.7'):
         'index-10.12-10.11-10.10-10.9-mountainlion-lion-snowleopard-leopard'
         '.merged-1.sucatalog')
 
+    HIGH_SIERRA_PKGNAME = 'OSX_10_13_IncompatibleAppList.pkg'
+    HIGH_SIERRA_CATALOG_URL = (
+        'https://swscan.apple.com/content/catalogs/others/'
+        'index-10.13-10.12-10.11-10.10-10.9-mountainlion-lion-snowleopard-leopard'
+        '.merged-1.sucatalog')
+
     if os_vers.startswith('10.7'):
         catalog_url = LION_CATALOG_URL
         package_name = LION_PKGNAME
@@ -625,6 +631,10 @@ def getPkgAndMakeIndexSproduct(destpath, os_vers='10.7'):
         catalog_url = SIERRA_CATALOG_URL
         package_name = SIERRA_PKGNAME
         os_vers = '10.12'
+    elif os_vers.startswith('10.13'):
+        catalog_url = HIGH_SIERRA_CATALOG_URL
+        package_name = HIGH_SIERRA_PKGNAME
+        os_vers = '10.13'
     else:
         print >> sys.stderr, 'Unsupported OS version!'
         return
@@ -647,10 +657,74 @@ def getPkgAndMakeIndexSproduct(destpath, os_vers='10.7'):
             pkg_info['URL'] = package_name
             #pkg_info['Version'] = os_vers
             # nope. Version is 10.7 even for ML (!)
-            pkg_info['Version'] = '10.7'
+            if os_vers < '10.9':
+                pkg_info['Version'] = '10.7'
+            else:
+                pkg_info['Version'] = os_vers
             index_dict = {}
             index_dict['Packages'] = [pkg_info]
             plist_path = os.path.join(destpath, 'index.sproduct')
+            # Check for extra install parts
+            package_path=os.path.join(source,
+                'Contents/SharedSupport/AppleDiagnostics.chunklist')
+            if os.path.exists(package_path):
+                pkg_info = {}
+                pkg_info['Identifier'] = 'com.apple.chunklist.AppleDiagnostics'
+                pkg_info['md5'] = ''
+                pkg_info['Size'] = int(os.path.getsize(package_path))
+                pkg_info['URL'] = 'AppleDiagnostics.chunklist'
+                pkg_info['Version'] = os_vers
+                index_dict['Packages'].extend([pkg_info])
+            package_path=os.path.join(source,
+                'Contents/SharedSupport/InstallInfo.plist')
+            if os.path.exists(package_path):
+                pkg_info = {}
+                pkg_info['Identifier'] = 'com.apple.plist.InstallInfo'
+                pkg_info['md5'] = ''
+                pkg_info['Size'] = int(os.path.getsize(package_path))
+                pkg_info['URL'] = 'InstallInfo.plist'
+                pkg_info['Version'] = os_vers
+                index_dict['Packages'].extend([pkg_info])
+            package_path=os.path.join(source,
+                'Contents/SharedSupport/BaseSystem.dmg')
+            if os.path.exists(package_path):
+                pkg_info = {}
+                pkg_info['Identifier'] = 'com.apple.dmg.BaseSystem'
+                pkg_info['md5'] = ''
+                pkg_info['Size'] = int(os.path.getsize(package_path))
+                pkg_info['URL'] = 'BaseSystem.dmg'
+                pkg_info['Version'] = os_vers
+                index_dict['Packages'].extend([pkg_info])
+            package_path=os.path.join(source,
+                'Contents/SharedSupport/AppleDiagnostics.dmg')
+            if os.path.exists(package_path):
+                pkg_info = {}
+                pkg_info['Identifier'] = 'com.apple.dmg.AppleDiagnostics'
+                pkg_info['md5'] = ''
+                pkg_info['Size'] = int(os.path.getsize(package_path))
+                pkg_info['URL'] = 'AppleDiagnostics.dmg'
+                pkg_info['Version'] = os_vers
+                index_dict['Packages'].extend([pkg_info])
+            package_path=os.path.join(source,
+                'Contents/SharedSupport/InstallESD.dmg')
+            if os.path.exists(package_path):
+                pkg_info = {}
+                pkg_info['Identifier'] = 'com.apple.dmg.InstallESD'
+                pkg_info['md5'] = ''
+                pkg_info['Size'] = int(os.path.getsize(package_path))
+                pkg_info['URL'] = 'InstallESD.dmg'
+                pkg_info['Version'] = os_vers
+                index_dict['Packages'].extend([pkg_info])
+            package_path=os.path.join(source,
+                'Contents/SharedSupport/BaseSystem.chunklist')
+            if os.path.exists(package_path):
+                pkg_info = {}
+                pkg_info['Identifier'] = 'com.apple.chunklist.BaseSystem'
+                pkg_info['md5'] = ''
+                pkg_info['Size'] = int(os.path.getsize(package_path))
+                pkg_info['URL'] = 'BaseSystem.chunklist'
+                pkg_info['Version'] = os_vers
+                index_dict['Packages'].extend([pkg_info])
             print "Writing index.sproduct to %s..." % plist_path
             try:
                 plistlib.writePlist(index_dict, plist_path)
@@ -1043,7 +1117,7 @@ def main():
         print 'Downloading and adding IncompatibleAppList pkg...'
         destpath = os.path.join(output_pkg_path,
                                 'Contents/Resources/OS X Install Data')
-        getPkgAndMakeIndexSproduct(destpath, os_vers=os_version)
+        getPkgAndMakeIndexSproduct(source, destpath, os_vers=os_version)
 
         print '----------------------------------------------------------------'
         print 'Copying InstallESD into package...'
