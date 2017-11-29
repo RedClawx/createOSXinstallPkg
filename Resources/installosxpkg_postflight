@@ -505,7 +505,7 @@ def findBootHelperPartitions(target_volume_path):
     return helper_partitions
 
 
-def createBootPlist(install_data_path):
+def createBootPlist(install_data_path, installvolinfo):
     '''Creates the com.apple.Boot.plist file'''
     # Example com.apple.Boot.plist:
     #
@@ -524,12 +524,20 @@ def createBootPlist(install_data_path):
     # </plist>
 
     boot_pl = {}
-    boot_pl['Kernel Cache'] = '/%s/%s' % (
-        INSTALL_DATA_DIR_NAME, KERNELCACHE_NAME)
-    boot_pl['Kernel Flags'] = (
-        'container-dmg=file://localhost/%s/InstallESD.dmg '
-        'root-dmg=file://localhost/BaseSystem.dmg'
-        % ENCODED_INSTALL_DATA_DIR_NAME)
+    if os_version < '10.13':
+        boot_pl['Kernel Cache'] = '/%s/%s' % (
+            INSTALL_DATA_DIR_NAME, KERNELCACHE_NAME)
+        boot_pl['Kernel Flags'] = (
+            'container-dmg=file://localhost/%s/InstallESD.dmg '
+            'root-dmg=file://localhost/BaseSystem.dmg'
+            % ENCODED_INSTALL_DATA_DIR_NAME)
+    else:
+        boot_pl['Kernel Cache'] = '/%s/%s' % (
+            INSTALL_DATA_DIR_NAME_BF, KERNELCACHE_NAME)
+        boot_pl['Kernel Flags'] = (
+            '-rootdmg-ramdisk auth-root-dmg=file:///%s/BaseSystem.dmg'
+            % ENCODED_INSTALL_DATA_DIR_NAME)
+        boot_pl['Root UUID'] = installvolinfo['VolumeUUID']
     try:
         plistlib.writePlist(
             boot_pl, os.path.join(install_data_path, 'com.apple.Boot.plist'))
