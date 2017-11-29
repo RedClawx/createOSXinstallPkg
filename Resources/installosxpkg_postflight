@@ -51,6 +51,10 @@ KERNELCACHE_DIR = 'System/Library/Caches/com.apple.kext.caches/Startup'
 SOURCE_INSTALL_DATA_DIR_NAME = 'OS X Install Data'
 INSTALL_DATA_DIR_NAME = 'OS X Install Data'
 ENCODED_INSTALL_DATA_DIR_NAME = urllib2.quote(INSTALL_DATA_DIR_NAME)
+INSTALL_DATA_DIR_NAME_LF = 'Locked Files'
+INSTALL_DATA_DIR_NAME_BF = 'Boot Files'
+INSTALL_DATA_DIR_NAME_EFI = 'usr/standalone/i386/EfiLoginUI'
+DoConvertToAPFS = False
 
 
 def setDestinationInstallDataNames(pkgpath):
@@ -61,6 +65,9 @@ def setDestinationInstallDataNames(pkgpath):
     os_version = info.get('CFBundleShortVersionString')
     global INSTALL_DATA_DIR_NAME
     global ENCODED_INSTALL_DATA_DIR_NAME
+    global INSTALL_DATA_DIR_NAME_LF
+    global INSTALL_DATA_DIR_NAME_BF
+    global INSTALL_DATA_DIR_NAME_EFI
     major_version = '.'.join(os_version.split('.')[:2])
     if major_version == '10.7':
         INSTALL_DATA_DIR_NAME = 'Mac OS X Install Data'
