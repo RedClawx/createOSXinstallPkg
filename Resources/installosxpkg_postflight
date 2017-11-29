@@ -662,6 +662,7 @@ def create_index_sproduct(resources_path, install_data_path):
                 pkgpath = os.path.join(
                     resources_path, SOURCE_INSTALL_DATA_DIR_NAME,
                     package['URL'])
+                print 'Copying %s to %s' % (package['URL'], install_data_path)
                 shutil.copy(pkgpath, install_data_path)
             except (KeyError, IOError), err:
                 cleanupFromFailAndExit(
