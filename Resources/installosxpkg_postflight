@@ -1012,6 +1012,10 @@ def main():
         cleanupFromFailAndExit('Missing runtime parameters from installer.')
 
     setDestinationInstallDataNames(packagepath)
+    system_version_plist = os.path.join(packagepath, 'Contents/Info.plist')
+    version_info = plistlib.readPlist(system_version_plist)
+    global os_version
+    os_version = version_info.get('CFBundleShortVersionString')
 
     # need this info a few places, so get it now
     installvolinfo = getVolumeInfo(installvolumepath)
@@ -1045,6 +1049,12 @@ def main():
         print '%s appears to be an AppleRAID volume.' % installvolumepath
         target_volume_is_corestorage_or_raid = True
 
+    global DoConvertToAPFS
+    if target_volume_is_corestorage_or_raid:
+        DoConvertToAPFS = False
+    else:
+        DoConvertToAPFS = True
+    
     # find our resources
     resources_path = os.path.join(packagepath, "Contents", "Resources")
     install_dmg = os.path.join(resources_path, 'InstallESD.dmg')
@@ -1122,11 +1132,68 @@ def main():
     else:
         # for 10.9 and later we need to copy from the BaseSystem.dmg
         basesystem_dmg = os.path.join(mountpoint, 'BaseSystem.dmg')
+        if not os.path.isfile(basesystem_dmg):
+            basesystem_dmg = os.path.join(resources_path, 'BaseSystem.dmg')
+        if not os.path.isfile(basesystem_dmg):
+            basesystem_dmg = os.path.join(resources_path,
+                SOURCE_INSTALL_DATA_DIR_NAME, 'BaseSystem.dmg')
+        print 'Mounting %s...' % basesystem_dmg
         basesystem_mountpoints = mountdmg(basesystem_dmg)
         if not basesystem_mountpoints:
             unmountdmg(mountpoint)
             cleanupFromFailAndExit('Could not mount BaseSystem.dmg')
         basesystem_mountpoint = basesystem_mountpoints[0]
+
+        # PlatformSupport.plist, SystemVersion.plist, and EFILoginUI
+        if os_version > '10.12':
+            print ('Copying PlatformSupport.plist to %s'
+                % os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_BF))
+            shutil.copy(os.path.join(basesystem_mountpoint,
+                'System/Library/CoreServices/PlatformSupport.plist'),
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_BF))
+            print ('Copying SystemVersion.plist to %s'
+                % os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_BF))
+            shutil.copy(os.path.join(basesystem_mountpoint,
+                'System/Library/CoreServices/SystemVersion.plist'),
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_BF))
+            print ('Copying EfiLoginUI files to %s'
+                % os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_EFI))
+            shutil.copy(os.path.join(basesystem_mountpoint,
+                '/usr/standalone/i386/EfiLoginUI/appleLogo.efires'),
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_EFI))
+            shutil.copy(os.path.join(basesystem_mountpoint,
+                '/usr/standalone/i386/EfiLoginUI/battery.efires'),
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_EFI))
+            shutil.copy(os.path.join(basesystem_mountpoint,
+                '/usr/standalone/i386/EfiLoginUI/disk_passwordUI.efires'),
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_EFI))
+            shutil.copy(os.path.join(basesystem_mountpoint,
+                '/usr/standalone/i386/EfiLoginUI/flag_picker.efires'),
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_EFI))
+            shutil.copy(os.path.join(basesystem_mountpoint,
+                '/usr/standalone/i386/EfiLoginUI/guest_userUI.efires'),
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_EFI))
+            shutil.copy(os.path.join(basesystem_mountpoint,
+                '/usr/standalone/i386/EfiLoginUI/loginui.efires'),
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_EFI))
+            shutil.copy(os.path.join(basesystem_mountpoint,
+                '/usr/standalone/i386/EfiLoginUI/Lucida13.efires'),
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_EFI))
+            shutil.copy(os.path.join(basesystem_mountpoint,
+                '/usr/standalone/i386/EfiLoginUI/Lucida13White.efires'),
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_EFI))
+            shutil.copy(os.path.join(basesystem_mountpoint,
+                '/usr/standalone/i386/EfiLoginUI/recovery_user.efires'),
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_EFI))
+            shutil.copy(os.path.join(basesystem_mountpoint,
+                '/usr/standalone/i386/EfiLoginUI/recoveryUI.efires'),
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_EFI))
+            shutil.copy(os.path.join(basesystem_mountpoint,
+                '/usr/standalone/i386/EfiLoginUI/sound.efires'),
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_EFI))
+            shutil.copy(os.path.join(basesystem_mountpoint,
+                '/usr/standalone/i386/EfiLoginUI/unknown_userUI.efires'),
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_EFI))
 
         # if prelinkedkernel file exists, this must be at least 10.11, so set
         # kernelcache paths differently - PrelinkedKernels dir exists
@@ -1148,12 +1215,22 @@ def main():
             bootefi = os.path.join(basesystem_mountpoint,
                                    'System/Library/CoreServices/boot.efi')
         try:
-            print ('Copying kernelcache and boot.efi to %s...'
-                   % install_data_path)
-            shutil.copy(kernelcache, install_data_path)
-            # need to specify filename because source might be named
-            # bootbase.efi
-            shutil.copy(bootefi, os.path.join(install_data_path, 'boot.efi'))
+            if os_version < '10.13':
+                print ('Copying kernelcache and boot.efi to %s...'
+                    % install_data_path)
+                shutil.copy(kernelcache, install_data_path)
+                # need to specify filename because source might be named
+                # bootbase.efi
+                shutil.copy(bootefi, os.path.join(install_data_path,
+                    'boot.efi'))
+            else:
+                print ('Copying kernelcache and boot.efi to %s...'
+                    % INSTALL_DATA_DIR_NAME_BF)
+                shutil.copy(kernelcache,
+                    os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_BF))
+                shutil.copy(bootefi,
+                    os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_BF,
+                    'boot.efi'))
         except IOError, err:
             unmountdmg(basesystem_mountpoint)
             unmountdmg(mountpoint)
@@ -1173,34 +1250,16 @@ def main():
     print 'Unmounting %s...' % install_dmg
     unmountdmg(mountpoint)
 
-    # either copy or link the dmg into place in install_data_path
-    dest_path = os.path.join(install_data_path, 'InstallESD.dmg')
-    if os.path.exists(dest_path):
-        try:
-            # remove pre-existing dmg
-            os.unlink(dest_path)
-        except OSError, err:
-            cleanupFromFailAndExit(
-                'Could not remove pre-existing %s: %s' % (dest_path, err))
-    try:
-        print 'Attempting to link %s to %s...' % (install_dmg, dest_path)
-        os.link(install_dmg, dest_path)
-    except OSError, err:
-        # couldn't link, so try to copy
-        print 'Couldn\'t create link because: %s' % err
-        try:
-            print ('Link not possible. Copying %s to %s...'
-                   % (install_dmg, dest_path))
-            shutil.copy(install_dmg, dest_path)
-        except OSError, err:
-            cleanupFromFailAndExit(
-                'Could not copy InstallESD.dmg to %s: %s' %
-                (install_data_path, err))
-
     if not target_volume_is_corestorage_or_raid:
         # create and write com.apple.Boot.plist file in install_data_path
-        print 'Creating com.apple.Boot.plist at %s...' % install_data_path
-        createBootPlist(install_data_path)
+        if os_version < '10.13':
+            print 'Creating com.apple.Boot.plist at %s...' % install_data_path
+            createBootPlist(install_data_path, installvolinfo)
+        else:
+            print ('Creating com.apple.Boot.plist at %s...'
+                % os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_BF))
+            createBootPlist(os.path.join(installvolumepath,
+                INSTALL_DATA_DIR_NAME_BF), installvolinfo)
 
     # We have everything in place now to boot from the dmg.
     # Next we need to set up items so the install kicks off automatically
@@ -1209,8 +1268,8 @@ def main():
     # this is info used by the Installer for an automated install
     print 'Creating minstallconfig.xml at %s...' % install_data_path
     create_minstallconfig(resources_path, installvolumepath,
-                          installvolinfo, language='en',
-                          custompackages=custompackages_state)
+                          installvolinfo, 'en',
+                          custompackages_state)
 
     # index.sproduct
     # this contains a list of additional signed (and therefore _flat_)
@@ -1224,6 +1283,9 @@ def main():
     # it deems it "too old".
     print 'Creating OSInstallAttr.plist at %s...' % install_data_path
     create_osinstallattr_plist(installvolinfo, install_data_path)
+    if os_version > '10.12':
+        create_osinstallattr_plist(installvolinfo,
+            os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_LF))
 
     # All files are in place. Before we reboot we must set an nvram variable and
     # bless our OS X installer files
@@ -1238,15 +1300,25 @@ def main():
         cleanupFromFailAndExit('Couldn\'t set nvram: %s' % err)
 
     # bless our OS X install boot environment
-    folder = install_data_path
-    bootefi = os.path.join(install_data_path, 'boot.efi')
+    if os_version < '10.13':
+        folder = install_data_path
+        bootefi = os.path.join(install_data_path, 'boot.efi')
+    else:
+        folder = os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_BF)
+        bootefi = os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_BF,
+            'boot.efi')
     label = 'OS X Installer'
     cmd = ['/usr/sbin/bless', '--setBoot', '--folder', folder,
            '--bootefi', bootefi, '--label', label]
     if not target_volume_is_corestorage_or_raid:
-        options = ['--options',
+        if os_version < '10.13':
+            options = ['--options',
                    'config="\\%s\\com.apple.Boot"' % INSTALL_DATA_DIR_NAME]
-        cmd.extend(options)
+            cmd.extend(options)
+        else:
+            options = ['--options',
+                    'config="\\macOS Install Data\\Locked Files\\Boot Files\\com.apple.Boot"']
+            cmd.extend(options)
     print 'Blessing OS X installer boot environment in %s...' % folder
     try:
         subprocess.check_call(cmd)
