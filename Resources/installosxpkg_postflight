@@ -547,7 +547,7 @@ def createBootPlist(install_data_path, installvolinfo):
 
 
 def create_minstallconfig(resources_path, installvolumepath,
-                          installvolinfo, language='en', custompackages=False):
+                          installvolinfo, language, custompackages):
     '''Creates and writes our automated installation file'''
 
     # Example minstallconfig.xml:
@@ -585,13 +585,20 @@ def create_minstallconfig(resources_path, installvolumepath,
         'MacOSXInstaller.choiceChanges')
     if os.path.exists(choiceChangesFile):
         shutil.copy(choiceChangesFile, install_data_path)
+        if os_version > '10.12':
+            shutil.copy(choiceChangesFile,
+                os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_LF))
         config['ChoiceChanges'] = 'MacOSXInstaller.choiceChanges'
 
     if custompackages:
         pkgpath = '/System/Installation/Packages/OSInstall.collection'
     else:
         pkgpath = '/System/Installation/Packages/OSInstall.mpkg'
-    config['Package'] = pkgpath
+    if os_version < '10.13':
+        config['Package'] = pkgpath
+    if os_version > '10.12':
+        config['ConvertToAPFS'] = DoConvertToAPFS
+        config['Install Document'] = 'InstallInfo.plist'
 
     # add install volume info
     config['Target'] = installvolumepath
@@ -605,6 +612,15 @@ def create_minstallconfig(resources_path, installvolumepath,
     except (IOError, ExpatError), err:
         cleanupFromFailAndExit(
             'Failed when creating minstallconfig.xml: %s' % err)
+    if os_version > '10.12':
+        minstallconfig_path = os.path.join(
+            os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_LF),
+            'minstallconfig.xml')
+        try:
+            plistlib.writePlist(config, minstallconfig_path)
+        except (IOError, ExpatError), err:
+            cleanupFromFailAndExit(
+                'Failed when creating minstallconfig.xml: %s' % err)
 
 
 def create_index_sproduct(resources_path, install_data_path):
