@@ -2,6 +2,7 @@
 # encoding: utf-8
 #
 # Copyright 2011-2016 Greg Neagle.
+# Copyright 2017 Brett DeCarion
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -24,6 +25,7 @@ Updated December 2012 for other CoreStorage volumes (like Fusion disks)
 Updated June 2013 for WWDC 2013
 Updated June 2014 for WWDC 2014
 Updated August 2016 for installing under SIP (using brtool)
+Modified by Brett DeCarion on November 2017 for compatibility with macOS High Sierra 10.13
 
 Sets up an OS X install.
 This is intended to be run as a package postflight script.'''
