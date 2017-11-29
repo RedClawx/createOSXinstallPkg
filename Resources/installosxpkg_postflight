@@ -76,6 +76,10 @@ def setDestinationInstallDataNames(pkgpath):
     else:
         # 10.12 and (presumably +)
         INSTALL_DATA_DIR_NAME = 'macOS Install Data'
+        INSTALL_DATA_DIR_NAME_LF = 'macOS Install Data/Locked Files'
+        INSTALL_DATA_DIR_NAME_BF = 'macOS Install Data/Locked Files/Boot Files'
+        INSTALL_DATA_DIR_NAME_EFI = ('macOS Install Data/Locked Files/'
+                                    'Boot Files/usr/standalone/i386/EfiLoginUI')
     ENCODED_INSTALL_DATA_DIR_NAME = urllib2.quote(INSTALL_DATA_DIR_NAME)
 
 
