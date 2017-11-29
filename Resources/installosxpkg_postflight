@@ -716,7 +716,13 @@ def create_osinstallattr_plist(installvolinfo, install_data_path):
     attr['OSIAutomationFile'] = (
         '/Volumes/%s/%s/minstallconfig.xml'
         % (installvolinfo['VolumeName'], INSTALL_DATA_DIR_NAME))
-    attr['OSSourceDiskUUID'] = installvolinfo['VolumeUUID']
+    if os_version < '10.13':
+        attr['OSSourceDiskUUID'] = installvolinfo['VolumeUUID']
+    else:
+        attr['Do APFS Convert'] = DoConvertToAPFS
+        attr['Install Type'] = 'OS Install'
+        attr['Previous System UUID'] = installvolinfo['VolumeUUID']
+        attr['ia-method'] = 'IASU'
     try:
         attr_path = os.path.join(install_data_path, 'OSInstallAttr.plist')
         plistlib.writePlist(attr, attr_path)
