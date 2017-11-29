@@ -161,6 +161,12 @@ class PlistParseError(Error):
     '''Plist parsing error'''
     pass
 
+class Tee(object):
+    def __init__(self, *files):
+        self.files = files
+    def write(self, obj):
+        for f in self.files:
+            f.write(obj)
 
 def getPlistFromCmd(cmd):
     '''Executes cmd, returns a plist from the output'''
@@ -1034,6 +1040,27 @@ def main():
             msg = ('Could not create \'%s\' directory on %s:\n%s'
                    % (INSTALL_DATA_DIR_NAME, installvolumepath, err))
             cleanupFromFailAndExit(msg)
+    
+    # setup logging
+    f = open(os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME, 'ai.log'), 'w')
+    backup = sys.stdout
+    sys.stdout = Tee(sys.stdout, f)
+ 
+    if os_version > 10.12:
+        if os.path.exists(os.path.join(installvolumepath, 
+                            INSTALL_DATA_DIR_NAME_EFI)):
+            print ('%s already exists on %s. Reusing it.'
+                % (INSTALL_DATA_DIR_NAME_EFI, installvolumepath))
+        else:
+            print ('Creating %s...'
+                % os.path.join(installvolumepath, INSTALL_DATA_DIR_NAME_EFI))
+            try:
+                os.makedirs(os.path.join(installvolumepath,
+                                INSTALL_DATA_DIR_NAME_EFI))
+            except:
+                msg = ('Could not create \'%s\' directory on %s:\n%s'
+                    % (INSTALL_DATA_DIR_NAME_EFI, installvolumepath, err))
+                cleanupFromFailAndExit(msg)
 
     # mount the InstallESD.dmg
     print 'Mounting %s...' % install_dmg
